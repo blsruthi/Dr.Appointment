@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Help Chat</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #fff1e6, #ffe6d9);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      margin: 0;
+      color: #333;
+    }
+    header {
+      background: #E78A6F;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 1.5rem;
+    }
+    .chat-container {
+      flex: 1;
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fdfdfd;
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      max-width: 80%;
+      font-size: 15px;
+    }
+    .user {
+      background: #E78A6F;
+      color: white;
+      align-self: flex-end;
+    }
+    .bot {
+      background: #f1f1f1;
+      align-self: flex-start;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      background: #E78A6F;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #d56c54;
+    }
+    footer {
+      text-align: center;
+      font-size: 14px;
+      color: #777;
+      margin-top: auto;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+<header>Help & Support Chat</header>
+
+<div class="chat-container">
+  <div class="messages" id="chatBox"></div>
+  <div class="input-group">
+    <input type="text" id="userInput" placeholder="Type your question..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<footer>
+  Need help? Call <a href="tel:+918123456789" style="color:#E78A6F;">+91 81234 56789</a> or email <a href="mailto:support@drapp.com" style="color:#E78A6F;">support@drapp.com</a>
+</footer>
+
+<script>
+  const chatBox = document.getElementById("chatBox");
+
+  function appendMessage(text, sender) {
+    const div = document.createElement("div");
+    div.className = `message ${sender}`;
+    div.textContent = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById("userInput");
+    const message = input.value.trim();
+    if (!message) return;
+
+    appendMessage(message, "user");
+    input.value = "";
+
+    setTimeout(() => {
+      const reply = generateBotReply(message);
+      appendMessage(reply, "bot");
+    }, 500);
+  }
+
+  function generateBotReply(text) {
+    text = text.toLowerCase();
+
+    if (text.includes("appointment")) {
+      return "You can schedule appointments in the 'Schedule Appointment' section.";
+    }
+    if (text.includes("report")) {
+      return "To upload a report, go to the 'Reports' section and fill the form.";
+    }
+    if (text.includes("doctor")) {
+      return "Check doctor availability in the 'Doctors' section.";
+    }
+    if (text.includes("track")) {
+      return "Go to 'Track Appointment' to see your appointment status.";
+    }
+    if (text.includes("contact") || text.includes("help")) {
+      return "You can reach us at support@drapp.com or call +91 9676509952.";
+    }
+
+    return "Sorry, I didn't understand that. Please try another question.";
+  }
+</script>
+<div style="text-align: center; margin-top: 30px;">
+  <button onclick="window.location.href='signinpage.html'" style="
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #E78A6F;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: background 0.3s ease;
+  ">
+    ⬅ Back 
+  </button>
+</div>
+
+
+</body>
+</html>

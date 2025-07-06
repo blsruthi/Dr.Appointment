@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings - Dr. Appointment</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f8;
+      color: #FFDBB5;
+    }
+
+    header {
+      background: #E78A6F;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .settings-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #E78A6F;
+    }
+
+    .setting {
+      margin-bottom: 20px;
+    }
+
+    .setting label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .setting input[type="password"],
+    .setting input[type="email"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .setting input[type="checkbox"] {
+      margin-right: 10px;
+    }
+
+    .setting button {
+      background: #E78A6F;
+      color: white;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .setting button:hover {
+      background: #FFDBB5;
+    }
+
+    @media (max-width: 600px) {
+      .settings-container {
+        margin: 20px;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h3>Settings</h3>
+    <button class="back-btn" onclick="window.location.href='signinpage.html'"><i class="fas fa-arrow-left"></i></button>
+  </header>
+
+  <div class="settings-container">
+    <h2>Account Settings</h2>
+
+    <div class="setting">
+      <label for="email">Email</label>
+      <input type="email" id="email"  placeholder="user@example.com">
+    </div>
+
+    <div class="setting">
+      <label for="new-password">Change Password</label>
+      <input type="password" id="new-password" placeholder="New Password">
+      <button onclick="changePassword()">Update Password</button>
+    </div>
+
+    <div class="setting">
+      <label>
+        <input type="checkbox" id="notifications"> Enable Notifications
+      </label>
+    </div>
+
+    <div class="setting">
+      <label>
+        <input type="checkbox" id="darkmode" onchange="toggleDarkMode()"> Dark Mode
+      </label>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+    authDomain: "drappointmnet.firebaseapp.com",
+    projectId: "drappointmnet",
+    storageBucket: "drappointmnet.appspot.com",
+    messagingSenderId: "245738959069",
+    appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Fetch and fill email + preferences
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById("email").value = user.email;
+      loadPreferences(user.uid);
+    } else {
+      window.location.href = "signin.html"; // redirect if not logged in
+    }
+  });
+
+  function changePassword() {
+    const newPassword = document.getElementById("new-password").value;
+    if (newPassword.length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+
+    const user = auth.currentUser;
+    user.updatePassword(newPassword)
+      .then(() => alert("Password updated successfully."))
+      .catch(error => alert("Error: " + error.message));
+  }
+
+  function toggleDarkMode() {
+    const isDark = document.getElementById("darkmode").checked;
+    document.body.style.background = isDark ? "#1e1e1e" : "#f4f6f8";
+    document.body.style.color = isDark ? "#fff" : "#333";
+
+    const user = auth.currentUser;
+    if (user) {
+      db.collection("users").doc(user.uid).set({
+        darkMode: isDark
+      }, { merge: true });
+    }
+  }
+
+  document.getElementById("notifications").addEventListener("change", function () {
+    const enable = this.checked;
+    const user = auth.currentUser;
+    if (user) {
+      db.collection("users").doc(user.uid).set({
+        notifications: enable
+      }, { merge: true });
+    }
+  });
+
+  function loadPreferences(uid) {
+    db.collection("users").doc(uid).get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.darkMode) {
+          document.getElementById("darkmode").checked = true;
+          document.body.style.background = "#1e1e1e";
+          document.body.style.color = "#fff";
+        }
+        if (data.notifications) {
+          document.getElementById("notifications").checked = true;
+        }
+      }
+    });
+  }
+</script>
+
+  
+
+</body>
+</html>

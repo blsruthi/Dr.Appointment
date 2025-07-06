@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule Appointment</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff6ec;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #E78A6F;
+    }
+    form {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #E78A6F;
+      color: white;
+      font-weight: bold;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d56c54;
+    }
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="signinpage.html" style="
+      background: white;
+      color: #c56244;
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);">⬅</a>
+  </header>
+
+  <h2>Schedule Appointment</h2>
+
+  <form id="appointmentForm">
+    <label for="name">Patient Name</label>
+    <input type="text" id="name" required />
+
+    <label for="phone">Phone Number</label>
+    <input type="tel" id="phone" required />
+
+    <label for="email">Email</label>
+    <input type="email" id="email" required />
+
+    <label for="doctor">Select Doctor</label>
+    <select id="doctor" required>
+      <option value="">-- Choose Doctor --</option>
+    </select>
+
+    <label for="date">Appointment Date</label>
+    <input type="date" id="date" required />
+
+    <label for="time">Appointment Time</label>
+    <input type="time" id="time" required />
+
+    <button type="submit">Schedule</button>
+  </form>
+
+  <div id="toast"></div>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+      authDomain: "drappointmnet.firebaseapp.com",
+      projectId: "drappointmnet",
+      storageBucket: "drappointmnet.appspot.com",
+      messagingSenderId: "245738959069",
+      appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // EmailJS Init
+    emailjs.init("4tX1YuWXqvTp6MSJK"); // Replace with your EmailJS public key
+
+    const doctorSelect = document.getElementById("doctor");
+    const toast = document.getElementById("toast");
+    const doctorDataMap = {};
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 3000);
+    }
+
+    // Load Doctors
+    function loadDoctors() {
+      db.collection("doctors").get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          doctorDataMap[doc.id] = data;
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = `${data.name} (${data.specialization})`;
+          doctorSelect.appendChild(option);
+        });
+      });
+    }
+
+    loadDoctors();
+
+    document.getElementById("appointmentForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById("name").value;
+      const phone = document.getElementById("phone").value;
+      const email = document.getElementById("email").value;
+      const doctorId = doctorSelect.value;
+      const selectedDoctor = doctorDataMap[doctorId];
+      const date = document.getElementById("date").value;
+      const time = document.getElementById("time").value;
+      const user = auth.currentUser;
+
+      if (!user) {
+        showToast("Please log in to schedule an appointment.");
+        return;
+      }
+
+      if (!selectedDoctor || selectedDoctor.availability === "N/A") {
+        showToast("Doctor is not available, please choose another doctor.");
+        return;
+      }
+
+      // Time availability check
+      function parseAvailabilityTime(str) {
+        const [time, modifier] = str.trim().toUpperCase().split(" ");
+        let [hours, minutes] = time.split(":").map(Number);
+        if (modifier === "PM" && hours !== 12) hours += 12;
+        if (modifier === "AM" && hours === 12) hours = 0;
+        return hours * 60 + (minutes || 0);
+      }
+
+      if (selectedDoctor.availability && selectedDoctor.availability.includes("-")) {
+        const [fromStr, toStr] = selectedDoctor.availability.split("-").map(s => s.trim());
+        const fromMinutes = parseAvailabilityTime(fromStr);
+        const toMinutes = parseAvailabilityTime(toStr);
+        const [userH, userM] = time.split(":").map(Number);
+        const userTotalMinutes = userH * 60 + userM;
+
+        if (userTotalMinutes < fromMinutes || userTotalMinutes > toMinutes) {
+          showToast(`Doctor is available from ${fromStr} to ${toStr}`);
+          return;
+        }
+      }
+
+      // Firestore Save
+      try {
+        await db.collection("appointments").add({
+          patientName: name,
+          phoneNumber: phone,
+          email: email,
+          doctorId,
+          doctorName: selectedDoctor.name,
+          specialization: selectedDoctor.specialization || "",
+          date,
+          time,
+          userId: user.uid,
+          timestamp: new Date()
+        });
+
+        // Send Email via EmailJS
+        await emailjs.send("service_weg7kb5", "template_h9drcyh", {
+          to_email: email,
+          patient_name: name,
+          phone_number: phone,
+          doctor_name: selectedDoctor.name,
+          appointment_date: date,
+          appointment_time: time
+        });
+
+        showToast("Appointment scheduled and email sent successfully.");
+        document.getElementById("appointmentForm").reset();
+
+      } catch (error) {
+        console.error(error);
+        showToast("Error: " + error.message);
+      }
+    });
+  </script>
+</body>
+</html>

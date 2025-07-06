@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Feedback</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #fff3e6, #ffe0cc);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      color: #E78A6F;
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    form {
+      background: white;
+      padding: 35px 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+      transition: transform 0.3s ease;
+    }
+
+    form:hover {
+      transform: scale(1.01);
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      color: #444;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      background-color: #E78A6F;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #d56c54;
+    }
+
+    .stars {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 24px;
+    }
+
+    .star {
+      cursor: pointer;
+      transition: transform 0.2s;
+      color: #ccc;
+    }
+
+    .star:hover,
+    .star.active {
+      color: gold;
+      transform: scale(1.2);
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1000;
+    }
+
+   
+    .back-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: #d56c54;
+  color: white;
+  font-size: 14px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s;
+  z-index: 100;
+  width: auto;          /* Add this to prevent full width */
+}
+
+  </style>
+</head>
+<body>
+
+  <button class="back-btn" onclick="goBack()">
+  <i class="fas fa-arrow-left"></i>&nbsp;Back
+</button>
+
+
+  <h2>Patient Feedback</h2>
+  <form id="feedbackForm">
+    <label for="name">Your Name</label>
+    <input type="text" id="name" required />
+
+    <label>Rating</label>
+    <div class="stars" id="starRating">
+      <span class="star" data-value="1"><i class="fas fa-star"></i></span>
+      <span class="star" data-value="2"><i class="fas fa-star"></i></span>
+      <span class="star" data-value="3"><i class="fas fa-star"></i></span>
+      <span class="star" data-value="4"><i class="fas fa-star"></i></span>
+      <span class="star" data-value="5"><i class="fas fa-star"></i></span>
+    </div>
+
+    <label for="message">Feedback</label>
+    <textarea id="message" required></textarea>
+
+    <button type="submit">Submit Feedback</button>
+  </form>
+
+  <div id="toast"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+      authDomain: "drappointmnet.firebaseapp.com",
+      projectId: "drappointmnet",
+      storageBucket: "drappointmnet.appspot.com",
+      messagingSenderId: "245738959069",
+      appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const stars = document.querySelectorAll(".star");
+    let selectedRating = 0;
+
+    stars.forEach(star => {
+      star.addEventListener("click", () => {
+        selectedRating = parseInt(star.getAttribute("data-value"));
+        updateStarUI();
+      });
+    });
+
+    function updateStarUI() {
+      stars.forEach(star => {
+        const val = parseInt(star.getAttribute("data-value"));
+        star.classList.toggle("active", val <= selectedRating);
+      });
+    }
+
+    const form = document.getElementById("feedbackForm");
+    const toast = document.getElementById("toast");
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 3000);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const message = document.getElementById("message").value.trim();
+
+      if (selectedRating === 0) {
+        showToast("Please select a rating.");
+        return;
+      }
+
+      try {
+        await db.collection("feedback").add({
+          name,
+          rating: selectedRating,
+          message,
+          timestamp: new Date()
+        });
+        showToast("Thank you for your feedback!");
+        form.reset();
+        selectedRating = 0;
+        updateStarUI();
+      } catch (error) {
+        showToast("Error: " + error.message);
+      }
+    });
+
+    function goBack() {
+      window.location.href = "signinpage.html"; // Change if needed
+    }
+  </script>
+
+</body>
+</html>

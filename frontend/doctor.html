@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Doctor Section - Dr. Appointment</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #eef2f7;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: #007bff;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+    header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    #searchInput {
+      padding: 8px 12px;
+      width: 250px;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: none;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      flex-grow: 1;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-bottom: 12px;
+      background: #ddd;
+    }
+    .card .info {
+      text-align: center;
+    }
+    .card .info h3 {
+      margin: 8px 0 4px;
+      font-size: 1.1rem;
+      color: #333;
+    }
+    .card .info p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: white;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    .modal .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .modal img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+      margin: 0 auto;
+    }
+    .modal h3 {
+      text-align: center;
+      margin: 12px 0 8px;
+      color: #007bff;
+    }
+    .modal p {
+      margin: 6px 0;
+      color: #444;
+    }
+    #toast {
+      display: none;
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 9999;
+      animation: fadeInOut 3s ease forwards;
+    }
+    @keyframes fadeInOut {
+      0%   { opacity: 0; transform: translateY(20px); }
+      10%  { opacity: 1; transform: translateY(0); }
+      90%  { opacity: 1; }
+      100% { opacity: 0; transform: translateY(20px); }
+    }
+    @media (max-width: 500px) {
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Doctors</h2>
+  <input id="searchInput" type="text" placeholder="Search doctors...">
+  <a href="signinpage.html" style="background: white; color: #007bff; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">⬅</a>
+</header>
+
+<div class="grid" id="doctorGrid"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="close-btn" onclick="toggleModal(false)">&times;</button>
+    <img id="modalPhoto" src="" alt="Doctor" />
+    <h3 id="modalName">Doctor Name</h3>
+    <p><strong>Specialization:</strong> <span id="modalSpec"></span></p>
+    <p><strong>Availability:</strong> <span id="modalAvail"></span></p>
+    <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
+    <p id="modalBio"></p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Firebase Setup -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+    authDomain: "drappointmnet.firebaseapp.com",
+    projectId: "drappointmnet",
+    storageBucket: "drappointmnet.appspot.com",
+    messagingSenderId: "245738959069",
+    appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const gridEl = document.getElementById('doctorGrid');
+  const searchEl = document.getElementById('searchInput');
+  const modalOverlay = document.getElementById('modalOverlay');
+
+  let allDoctors = [];
+
+  db.collection('doctors').onSnapshot(snapshot => {
+    allDoctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderList(allDoctors);
+  });
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    const filtered = allDoctors.filter(doc => {
+      return doc.name.toLowerCase().includes(q) ||
+             doc.specialization.toLowerCase().includes(q);
+    });
+    renderList(filtered);
+  });
+
+  function renderList(list) {
+    gridEl.innerHTML = '';
+    if (!list.length) {
+      gridEl.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#666">No doctors found...</p>';
+      return;
+    }
+    list.forEach(doc => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${doc.photoURL || 'https://i.imgur.com/UH3IPXw.png'}" alt="">
+        <div class="info">
+          <h3>${doc.name}</h3>
+          <p>${doc.specialization}</p>
+          <p style="font-size:0.8rem;color:#007bff;">${doc.availability || 'Availability: N/A'}</p>
+        </div>`;
+      card.onclick = () => openProfileModal(doc);
+      gridEl.appendChild(card);
+    });
+  }
+
+  function openProfileModal(doc) {
+    document.getElementById('modalPhoto').src = doc.photoURL || 'https://i.imgur.com/UH3IPXw.png';
+    document.getElementById('modalName').innerText = doc.name;
+    document.getElementById('modalSpec').innerText = doc.specialization;
+    document.getElementById('modalAvail').innerText = doc.availability || 'Not Available';
+    document.getElementById('modalPhone').innerText = doc.phone || 'Not Provided';
+    document.getElementById('modalBio').innerText = doc.bio || '';
+    toggleModal(true);
+  }
+
+  function toggleModal(show) {
+    modalOverlay.style.display = show ? 'flex' : 'none';
+  }
+
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) toggleModal(false);
+  });
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 3000);
+  }
+
+  // Example usage (you can call this anywhere in the script)
+  // showToast("Doctor loaded successfully");
+
+</script>
+</body>
+</html>

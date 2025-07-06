@@ -1,0 +1,135 @@
+/* Reset & Basics */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  height: 100%;
+}
+
+/* Background Image Overlay */
+.background {
+  background: url('Vector.png') no-repeat center center;
+  background-size: 35%;
+  background-position: center;
+  background-attachment: fixed;
+  background-color: #fff;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Header Styling */
+header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.menu-btn, .profile-btn {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Main Button Layout */
+.main-section {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  background-color: #f08989;
+  border: none;
+  border-radius: 15px;
+  padding: 40px;
+  cursor: pointer;
+  transition: transform 0.3s ease, background-color 0.3s;
+  text-align: center;
+  width: 240px;
+}
+
+.icon-btn:hover {
+  transform: translateY(-5px);
+  background-color: #ffb4b4;
+}
+
+.icon-btn img {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 10px;
+}
+
+.icon-btn p {
+  font-weight: bold;
+  color: #222;
+}
+
+/* Footer with Horizontal Scroll */
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #f08989;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 20px 10px;
+}
+
+.scroll-footer {
+  display: inline-block;
+  animation: scrollText 15s linear infinite;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.scroll-footer span {
+  font-size: 2.3rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.scroll-footer .ambulance {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+/* Animation */
+@keyframes scrollText {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .icon-btn {
+    width: 80%;
+  }
+
+  .scroll-footer span {
+    font-size: 0.9rem;
+  }
+
+  .scroll-footer .ambulance {
+    width: 48px;
+    height: 48px;
+  }
+}

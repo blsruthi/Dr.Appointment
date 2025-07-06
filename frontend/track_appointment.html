@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Track Appointment</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(120deg, #FFDBB5, #FFECD2);
+      padding: 40px;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      color: #D44727;
+      margin-bottom: 30px;
+      font-size: 32px;
+    }
+
+    .search-box {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    input[type="text"] {
+      padding: 12px;
+      width: 300px;
+      max-width: 80%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 24px;
+      background-color: #E78A6F;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #cf6d50;
+    }
+
+    .progress-container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      display: none;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .appointment-details {
+      font-size: 16px;
+      color: #333;
+      line-height: 1.7;
+      margin-bottom: 30px;
+    }
+
+    .step-tracker {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      margin-top: 20px;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex: 1;
+      transition: all 0.4s ease;
+    }
+
+    .step-icon {
+      background-color: #ccc;
+      color: white;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 8px;
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .step.active .step-icon {
+      background-color: #E78A6F;
+      transform: scale(1.1);
+    }
+
+    .step-label {
+      margin-top: 10px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .line {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      right: -50%;
+      height: 4px;
+      background: #ccc;
+      z-index: -1;
+    }
+
+    .step.active + .step .line {
+      background: #E78A6F;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: #fff;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+      z-index: 9999;
+      animation: fadeInOut 3s ease-in-out forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(10px); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="signinpage.html" style="background:white;color:#c56244;padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:0.9rem;box-shadow:0 2px 6px rgba(0,0,0,0.1);">⬅</a>
+  </header>
+
+  <h2>Track Your Appointment</h2>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Enter Patient Name" />
+    <button onclick="searchAppointment()">Search</button>
+  </div>
+
+  <div id="resultContainer" class="progress-container"></div>
+  <div id="toast"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+      authDomain: "drappointmnet.firebaseapp.com",
+      projectId: "drappointmnet",
+      storageBucket: "drappointmnet.appspot.com",
+      messagingSenderId: "245738959069",
+      appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let unsubscribe = null;
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 3000);
+    }
+
+    function createProgressView(status) {
+      const steps = ["Scheduled", "In Progress", "Completed"];
+      const icons = ["calendar", "activity", "check-circle"];
+
+      const tracker = document.createElement("div");
+      tracker.className = "step-tracker";
+
+      steps.forEach((step, index) => {
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "step";
+        if (steps.indexOf(status) >= index) stepDiv.classList.add("active");
+
+        const icon = document.createElement("div");
+        icon.className = "step-icon";
+        icon.innerHTML = `<i data-lucide="${icons[index]}"></i>`;
+
+        const label = document.createElement("div");
+        label.className = "step-label";
+        label.textContent = step;
+
+        if (index < steps.length - 1) {
+          const line = document.createElement("div");
+          line.className = "line";
+          stepDiv.appendChild(line);
+        }
+
+        stepDiv.appendChild(icon);
+        stepDiv.appendChild(label);
+        tracker.appendChild(stepDiv);
+      });
+
+      lucide.createIcons();
+      return tracker;
+    }
+
+    function searchAppointment() {
+      const name = document.getElementById("searchInput").value.trim();
+      const container = document.getElementById("resultContainer");
+      container.innerHTML = "";
+      container.style.display = "none";
+
+      if (!name) return showToast("Please enter a name");
+
+      if (unsubscribe) unsubscribe();
+
+      unsubscribe = db.collection("appointments")
+        .where("patientName", "==", name)
+        .limit(1)
+        .onSnapshot(async snapshot => {
+          if (snapshot.empty) {
+            container.innerHTML = "";
+            container.style.display = "none";
+            showToast("No appointment found for " + name);
+            return;
+          }
+
+          const doc = snapshot.docs[0];
+          const data = doc.data();
+
+          // If appointment is completed, delete it
+          if (data.status === "Completed") {
+            try {
+              await db.collection("appointments").doc(doc.id).delete();
+              container.innerHTML = "";
+              container.style.display = "none";
+              showToast(`Appointment for ${name} is completed and removed.`);
+              return;
+            } catch (err) {
+              console.error("Error deleting completed appointment:", err);
+              showToast("Failed to delete completed appointment.");
+              return;
+            }
+          }
+
+          const heading = document.createElement("h3");
+          heading.textContent = `Appointment for ${data.patientName}`;
+
+          const details = document.createElement("div");
+          details.className = "appointment-details";
+          details.innerHTML = `<strong>Doctor:</strong> ${data.doctorName}<br/>
+                               <strong>Date:</strong> ${data.date}<br/>
+                               <strong>Time:</strong> ${data.time}<br/>
+                               <strong>Status:</strong> ${data.status || "Scheduled"}`;
+
+          const progress = createProgressView(data.status || "Scheduled");
+
+          container.appendChild(heading);
+          container.appendChild(details);
+          container.appendChild(progress);
+          container.style.display = "block";
+        }, error => {
+          console.error("Error fetching real-time data:", error);
+          showToast("Error getting real-time updates.");
+        });
+    }
+  </script>
+</body>
+</html>

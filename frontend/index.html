@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dr. Appointment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    /* your existing CSS remains unchanged */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: url('homepageimg.jpg') no-repeat center center/cover;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      margin-left: 5%;
+      max-width: 90%;
+    }
+
+    h1 {
+      font-size: 3.9rem;
+      margin-bottom: 30px;
+      color: #e16f8c;
+      animation: fadeSlideDown 1s ease-out forwards;
+      text-shadow: 1px 1px 3px #000;
+    }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      transition: background-color 0.3s ease;
+      animation: fadeSlideUp 1s ease-out forwards;
+    }
+
+    .google-btn {
+      background-color: #030404;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .google-btn:hover {
+      background-color: #0e0d0d;
+    }
+
+    button:hover {
+      animation: bounce 0.4s ease;
+    }
+
+    @keyframes fadeSlideDown {
+      from { transform: translateY(-30px); }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeSlideUp {
+      from { transform: translateY(30px); }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes bounce {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 768px) {
+      body { align-items: flex-start; padding: 20px; }
+      h1 { font-size: 2.2rem; }
+      .container { margin-top: 10%; width: 100%; }
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.8rem; }
+      button { font-size: 14px; padding: 10px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to <br>Dr. Appointment</h1>
+    <div class="button-container">
+      <button onclick="window.location.href='signin.html'">Sign In</button>
+      <button onclick="window.location.href='signup.html'">Sign Up</button>
+      <button class="google-btn" onclick="googleSignIn()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Icon" width="20" />
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+ <!-- Firebase SDKs (only compat versions) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+    authDomain: "drappointmnet.firebaseapp.com",
+    projectId: "drappointmnet",
+    storageBucket: "drappointmnet.appspot.com", // fixed spelling here
+    messagingSenderId: "245738959069",
+    appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+  };
+
+  // Initialize Firebase App
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // Google Sign-In function
+  function googleSignIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  // This line tells Google to always show the account chooser
+  provider.setCustomParameters({
+    prompt: 'select_account'
+  });
+
+  auth.signInWithPopup(provider)
+    .then(result => {
+      alert(`Signed in with Google: ${result.user.displayName}`);
+      window.location.href = "dashboard.html"; // Redirect as needed
+    })
+    .catch(error => {
+      alert("Google Sign-In failed: " + error.message);
+    });
+}
+
+</script>
+
+</body>
+</html>

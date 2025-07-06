@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Medical Reports</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: 'Segoe UI',sans-serif; background:#fff9f3; margin:0; padding:20px; color:#333; }
+    h2,h3 { text-align:center; color:#E78A6F; }
+    .container { max-width:1000px; margin:auto; display:flex; flex-wrap:wrap; gap:40px; justify-content:space-between; }
+    .form-section, .view-section { flex:1; min-width:300px; background:#fff; padding:25px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+    label { font-weight:bold; }
+    input,textarea,button { width:100%; margin:8px 0 20px; padding:10px; border:1px solid #ccc; border-radius:6px; }
+    button { background:#E78A6F; color:#fff; font-weight:bold; border:none; cursor:pointer; transition:0.3s; }
+    button:hover { background:#c56244; }
+    .report-list { margin-top:20px; }
+    .report-card { background:#FFEFDC; padding:15px; border-radius:8px; margin-bottom:15px; box-shadow:0 0 5px rgba(0,0,0,0.1); }
+    .report-card button { margin:5px 5px 0 0; padding:8px 12px; font-size:0.9rem; }
+    .modal { display:none; position:fixed; z-index:2000; top:0;left:0;width:100%;height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; }
+    .modal-content { background:#fff; padding:30px; border-radius:10px; width:90%; max-width:500px; text-align:left; box-shadow:0 8px 16px rgba(0,0,0,0.2); animation:fadeIn .3s; }
+    .modal-content p { margin-bottom:10px; }
+    .close-btn { float:right; font-size:24px; cursor:pointer; }
+    @keyframes fadeIn { from {opacity:0;transform:scale(0.95);} to {opacity:1;transform:scale(1);} }
+    #toast { display:none; position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#333;color:#fff;padding:12px 20px;border-radius:6px; z-index:9999; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="signinpage.html" style="background: white; color: #c56244; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">⬅</a>
+</header>
+
+<h2>Medical Reports</h2>
+<div class="container">
+  <div class="form-section">
+    <h3>Upload Report</h3>
+    <form id="uploadForm">
+      <label>Patient Name</label>
+      <input type="text" id="patientName" required />
+      <label>Report Type</label>
+      <input type="text" id="reportType" required />
+      <label>Description</label>
+      <textarea id="reportDescription" rows="4" required></textarea>
+      <label>Select File</label>
+      <input type="file" id="reportFileInput" required />
+      <button type="submit">Upload Report</button>
+    </form>
+  </div>
+
+  <div class="view-section">
+    <h3>Search Reports</h3>
+    <input type="text" id="searchInput" placeholder="Search by patient name"/>
+    <div class="report-list" id="reportList"></div>
+  </div>
+</div>
+
+<div class="modal" id="reportModal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+    authDomain: "drappointmnet.firebaseapp.com",
+    projectId: "drappointmnet",
+    storageBucket: "drappointmnet.appspot.com",
+    messagingSenderId: "245738959069",
+    appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  document.getElementById("uploadForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const p = document.getElementById("patientName").value;
+    const t = document.getElementById("reportType").value;
+    const d = document.getElementById("reportDescription").value;
+    const file = document.getElementById("reportFileInput").files[0];
+
+    if (!auth.currentUser) { showToast("Please sign in first."); return; }
+    if (!file) { showToast("Please select a file."); return; }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("patientName", p);
+    formData.append("reportType", t);
+    formData.append("reportDescription", d);
+    formData.append("uid", auth.currentUser.uid);
+
+    try {
+      const res = await fetch("http://localhost:3000/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast("Report uploaded!");
+        e.target.reset();
+        loadReports();
+      } else {
+        throw new Error(data.message || "Upload failed.");
+      }
+
+    } catch (err) {
+      console.error(err);
+      showToast("Upload failed.");
+    }
+  });
+
+  async function loadReports() {
+    const list = document.getElementById("reportList");
+    list.innerHTML = "";
+    const snap = await db.collection("reports").orderBy("timestamp", "desc").get();
+    snap.forEach(doc => {
+      const d = doc.data(), id = doc.id;
+      const card = document.createElement("div");
+      card.className = "report-card";
+      card.innerHTML = `
+        <strong>${d.patientName}</strong><br>
+        <small>${d.reportType}</small><br>
+        <button onclick='viewReport(${JSON.stringify({ ...d, id }).replace(/'/g,"\\'")})'>View</button>
+        <button onclick='downloadReport("${d.fileUrl}", "${d.patientName}_Report")' style="background:#28a745">Download</button>
+        <button onclick='deleteReport("${id}")' style="background:#dc3545">Delete</button>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  document.getElementById("searchInput").addEventListener("input", async function() {
+    const q = this.value.toLowerCase();
+    const list = document.getElementById("reportList");
+    list.innerHTML = "";
+    const snap = await db.collection("reports").orderBy("timestamp", "desc").get();
+    snap.forEach(doc => {
+      const d = doc.data(), id = doc.id;
+      if (d.patientName.toLowerCase().includes(q)) {
+        const card = document.createElement("div");
+        card.className = "report-card";
+        card.innerHTML = `
+          <strong>${d.patientName}</strong><br>
+          <small>${d.reportType}</small><br>
+          <button onclick='viewReport(${JSON.stringify({ ...d, id }).replace(/'/g,"\\'")})'>View</button>
+          <button onclick='downloadReport("${d.fileUrl}", "${d.patientName}_Report")' style="background:#28a745">Download</button>
+          <button onclick='deleteReport("${id}")' style="background:#dc3545">Delete</button>
+        `;
+        list.appendChild(card);
+      }
+    });
+  });
+
+  function viewReport(d) {
+    const ts = d.timestamp?.seconds ? new Date(d.timestamp.seconds*1000).toLocaleString() : "N/A";
+    document.getElementById("modalContent").innerHTML = `
+      <p><strong>Patient:</strong> ${d.patientName}</p>
+      <p><strong>Type:</strong> ${d.reportType}</p>
+      <p><strong>Description:</strong> ${d.reportDescription}</p>
+      <p><strong>Uploaded:</strong> ${ts}</p>
+      <p><a href="${d.fileUrl}" target="_blank" style="color:#007bff">Open File</a></p>`;
+    document.getElementById("reportModal").style.display = "flex";
+  }
+
+  function deleteReport(id) {
+    if (!confirm("Delete this report?")) return;
+    db.collection("reports").doc(id).delete().then(() => {
+      showToast("Deleted.");
+      loadReports();
+    }).catch(() => showToast("Delete failed."));
+  }
+
+  function closeModal() {
+    document.getElementById("reportModal").style.display = "none";
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    setTimeout(() => t.style.display = "none", 3000);
+  }
+
+  async function downloadReport(fileUrl, suggestedName = "report") {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+
+      const handle = await window.showSaveFilePicker({
+        suggestedName: suggestedName + ".pdf",
+        types: [{
+          description: "PDF or Document",
+          accept: {
+            "application/pdf": [".pdf"],
+            "application/octet-stream": [".doc", ".png", ".jpg", ".jpeg"]
+          }
+        }]
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+
+      showToast("Downloaded successfully.");
+    } catch (err) {
+      console.error("Download failed:", err);
+      showToast("Download failed or canceled.");
+    }
+  }
+
+  // Load reports after login
+  firebase.auth().onAuthStateChanged(u => {
+    if (u) loadReports();
+  });
+</script>
+
+</body>
+</html>

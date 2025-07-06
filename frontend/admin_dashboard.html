@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Manage Appointments</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff6ec;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #E78A6F;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #E78A6F;
+      color: white;
+    }
+    select, button {
+      padding: 6px 10px;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #E78A6F;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d56c54;
+    }
+  </style>
+</head>
+<body>
+  <h2>Admin Dashboard - Update Appointment Status</h2>
+  <table id="appointmentsTable">
+    <thead>
+      <tr>
+        <th>Patient Name</th>
+        <th>Phone</th>
+        <th>Doctor</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Status</th>
+        <th>Update</th>
+      </tr>
+    </thead>
+    <tbody id="appointmentsBody"></tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQNPKMlCYtG_OsNVl9LnTStkQX0H5dXlI",
+      authDomain: "drappointmnet.firebaseapp.com",
+      projectId: "drappointmnet",
+      storageBucket: "drappointmnet.appspot.com",
+      messagingSenderId: "245738959069",
+      appId: "1:245738959069:web:be65ca7dec7e6e3122eb34"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tbody = document.getElementById("appointmentsBody");
+
+    async function loadAppointments() {
+      const snapshot = await db.collection("appointments").orderBy("timestamp", "desc").get();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${data.patientName}</td>
+          <td>${data.phoneNumber}</td>
+          <td>${data.doctorName}</td>
+          <td>${data.date}</td>
+          <td>${data.time}</td>
+          <td>
+            <select id="status-${doc.id}">
+              <option value="Scheduled" ${data.status === "Scheduled" ? "selected" : ""}>Scheduled</option>
+              <option value="In Progress" ${data.status === "In Progress" ? "selected" : ""}>In Progress</option>
+              <option value="Completed" ${data.status === "Completed" ? "selected" : ""}>Completed</option>
+            </select>
+          </td>
+          <td>
+            <button onclick="updateStatus('${doc.id}')">Update</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    async function updateStatus(appointmentId) {
+      const selectedStatus = document.getElementById(`status-${appointmentId}`).value;
+      try {
+        await db.collection("appointments").doc(appointmentId).update({ status: selectedStatus });
+        alert("Status updated successfully.");
+      } catch (error) {
+        alert("Error updating status: " + error.message);
+      }
+    }
+
+    loadAppointments();
+  </script>
+</body>
+</html>
