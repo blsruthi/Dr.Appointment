@@ -64,26 +64,20 @@ Dr.Appointment/
 ```bash
 git clone https://github.com/blsruthi/Dr.Appointment.git
 cd Dr.Appointment
-Set Up the Frontend
-bash
-Copy
-Edit
+2.Set Up the Frontend
+
 cd Frontend
 npm install
 npm start
 3. Set Up the Backend (Optional if Firebase Functions)
-bash
-Copy
-Edit
+
 cd ../Backend
 npm install
 node index.js
 🔐 Environment Setup
 Create a .env file in the root and add:
 
-ini
-Copy
-Edit
+
 REACT_APP_FIREBASE_API_KEY=your_api_key
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
 REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
