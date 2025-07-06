@@ -70,18 +70,21 @@ cd Frontend
 npm install
 npm start
 3. Set Up the Backend (Optional if Firebase Functions)
-
 cd ../Backend
 npm install
 node index.js
 🔐 Environment Setup
-Create a .env file in the root and add:
-
-
+4.Create a .env file in the root and add:
 REACT_APP_FIREBASE_API_KEY=your_api_key
 REACT_APP_FIREBASE_PROJECT_ID=your_project_id
 REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
 REACT_APP_UPLOADCARE_PUBLIC_KEY=your_uploadcare_key
+5.Generate Private Key
+a.Click the "Generate new private key" button
+b.Confirm → It will download a file like:
+drappointmnet-firebase-adminsdk-xxxxx.json
+c.Rename the file (optional) to:
+serviceAccountKey.json
 
 🛡️ Security Notes
 ✅ serviceAccount.json is excluded via .gitignore
